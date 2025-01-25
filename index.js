@@ -5,9 +5,21 @@ const dynamodb = new AWS.DynamoDB.DocumentClient();
 exports.handler = async (event) => {
     console.log("Received event:", JSON.stringify(event));
 
+    if (event.requestContext.http.method === 'OPTIONS') {
+        return {
+            statusCode: 200,
+            headers: {
+                'Access-Control-Allow-Origin': '*',
+                'Access-Control-Allow-Headers': 'Content-Type,X-Amz-Date,Authorization,X-Api-Key,X-Amz-Security-Token',
+                'Access-Control-Allow-Methods': 'OPTIONS,POST,GET'
+            },
+            body: ''
+        };
+    }
+
     try {
         // Handle POST requests (event creation)
-        if (event.httpMethod === 'POST') {
+        if (event.requestContext.http.method === 'POST') {
             const body = JSON.parse(event.body);
             console.log("Parsed body:", body);
             const { eventName, eventDate, eventTime } = body;
@@ -57,7 +69,7 @@ exports.handler = async (event) => {
         }
 
         // Unsupported HTTP methods
-        console.error("Unsupported HTTP method:", event.httpMethod);
+        console.error("Unsupported HTTP method:", event.requestContext.http.method);
         return {
             statusCode: 405,
             headers: {
