@@ -61,7 +61,8 @@ exports.handler = async (event) => {
             console.log("Event successfully saved to DynamoDB");
 
             // Directly invoke the BELLCreateRemindersFunction for Immediate reminder
-            await invokeImmediateReminder(eventName);
+            console.log("Invoking Immediate Reminder...");
+            await invokeImmediateReminder(eventName, eventDate, eventTime);
 
             // Create EventBridge rules for subsequent reminders
             await createReminderRule(eventId, 'OneWeek', calculateTimestamp(eventDate, eventTime, -7), eventName);
@@ -119,9 +120,9 @@ const invokeImmediateReminder = async (eventName, eventDate, eventTime) => {
             FunctionName: reminderLambdaArn,
             InvocationType: 'Event', // Asynchronous invocation
             Payload: JSON.stringify({
-                eventName: eventName,
-                eventDate: eventDate,
-                eventTime: eventTime,
+                eventName,
+                eventDate,
+                eventTime,
                 reminderType: 'Immediate',
             }),
         }).promise();
@@ -181,6 +182,7 @@ const calculateTimestamp = (eventDate, eventTime, daysOffset) => {
     const eventTimestamp = new Date(`${eventDate}T${eventTime}:00Z`).getTime();
     return eventTimestamp + daysOffset * 24 * 60 * 60 * 1000;
 };
+
 
 
 
