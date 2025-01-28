@@ -106,20 +106,22 @@ exports.handler = async (event) => {
 };
 
 // Helper function to immediately invoke the BELLCreateRemindersFunction
-const invokeImmediateReminder = async (eventName) => {
+const invokeImmediateReminder = async (eventName, eventDate, eventTime) => {
     const reminderLambdaArn = process.env.ReminderLambdaArn; // Get ARN from environment variable
 
     if (!reminderLambdaArn) {
         throw new Error('ReminderLambdaArn is not set in environment variables.');
     }
 
-    console.info(`Invoking BELLCreateRemindersFunction for Immediate reminder with eventName: ${eventName}`);
+    console.info(`Invoking BELLCreateRemindersFunction for Immediate reminder with eventName: ${eventName}, eventDate: ${eventDate}, eventTime: ${eventTime}`);
     try {
         await lambda.invoke({
             FunctionName: reminderLambdaArn,
             InvocationType: 'Event', // Asynchronous invocation
             Payload: JSON.stringify({
                 eventName: eventName,
+                eventDate: eventDate,
+                eventTime: eventTime,
                 reminderType: 'Immediate',
             }),
         }).promise();
