@@ -65,9 +65,9 @@ exports.handler = async (event) => {
             await invokeImmediateReminder(eventName, eventDate, eventTime);
 
             // Create EventBridge rules for subsequent reminders
-            await createReminderRule(eventId, 'OneWeek', calculateTimestamp(eventDate, eventTime, -7), eventName);
-            await createReminderRule(eventId, 'ThreeDays', calculateTimestamp(eventDate, eventTime, -3), eventName);
-            await createReminderRule(eventId, 'OneDay', calculateTimestamp(eventDate, eventTime, -1), eventName);
+            await createReminderRule(eventId, 'OneWeek', calculateTimestamp(eventDate, eventTime, -7), eventName, eventDate, eventTime);
+            await createReminderRule(eventId, 'ThreeDays', calculateTimestamp(eventDate, eventTime, -3), eventName, eventDate, eventTime);
+            await createReminderRule(eventId, 'OneDay', calculateTimestamp(eventDate, eventTime, -1), eventName, eventDate, eventTime);
 
             // Return success response
             return {
@@ -134,7 +134,7 @@ const invokeImmediateReminder = async (eventName, eventDate, eventTime) => {
 };
 
 // Function to create an EventBridge rule
-const createReminderRule = async (eventId, reminderType, timestamp, eventName) => {
+const createReminderRule = async (eventId, reminderType, timestamp, eventName, eventDate, eventTime) => {
     const ruleName = `${eventId}-${reminderType}`;
     const reminderLambdaArn = process.env.ReminderLambdaArn; // Get ARN from environment variable
 
@@ -160,7 +160,7 @@ const createReminderRule = async (eventId, reminderType, timestamp, eventName) =
         Target: {
             Arn: reminderLambdaArn,
             RoleArn: process.env.SchedulerRoleArn,
-            Input: JSON.stringify({ eventName, reminderType }),
+            Input: JSON.stringify({ eventName, eventDate, eventTime, reminderType }),
         },
         FlexibleTimeWindow: {
             Mode: 'OFF',
@@ -182,6 +182,7 @@ const calculateTimestamp = (eventDate, eventTime, daysOffset) => {
     const eventTimestamp = new Date(`${eventDate}T${eventTime}:00Z`).getTime();
     return eventTimestamp + daysOffset * 24 * 60 * 60 * 1000;
 };
+
 
 
 
