@@ -65,9 +65,9 @@ exports.handler = async (event) => {
             await invokeImmediateReminder(eventName, eventDate, eventTime);
 
             // Create EventBridge rules for subsequent reminders
-            await createReminderRule(eventId, 'OneWeek', calculateTimestamp(eventDate, eventTime, -7), eventName, eventDate, eventTime);
-            await createReminderRule(eventId, 'ThreeDays', calculateTimestamp(eventDate, eventTime, -3), eventName, eventDate, eventTime);
-            await createReminderRule(eventId, 'OneDay', calculateTimestamp(eventDate, eventTime, -1), eventName, eventDate, eventTime);
+            await createReminderRule(eventId, 'OneWeek', convertToUTCTimestamp(eventDate, eventTime, 7), eventName, eventDate, eventTime);
+            await createReminderRule(eventId, 'ThreeDays', convertToUTCTimestamp(eventDate, eventTime, 3), eventName, eventDate, eventTime);
+            await createReminderRule(eventId, 'OneDay', convertToUTCTimestamp(eventDate, eventTime, 1), eventName, eventDate, eventTime);
 
             // Return success response
             return {
@@ -143,8 +143,16 @@ const createReminderRule = async (eventId, reminderType, timestamp, eventName, e
     }
 
     const currentTimestamp = new Date().getTime();
-    if (timestamp < currentTimestamp) {
-        console.warn(`Skipping ${reminderType} schedule for ${ruleName}: Timestamp is in the past.`);
+    const eventTimestamp = convertToUTCTimestamp(eventDate, eventTime, 0); // Convert event date/time to UTC timestamp
+
+    // Ensure the reminder timestamp is BEFORE the event but NOT in the past
+    if (timestamp <= currentTimestamp) {
+        console.warn(`Skipping ${reminderType} schedule for ${ruleName}: Reminder time is already in the past.`);
+        return;
+    }
+
+    if (timestamp >= eventTimestamp) {
+        console.warn(`Skipping ${reminderType} schedule for ${ruleName}: Reminder must be scheduled before the event.`);
         return;
     }
 
@@ -177,10 +185,14 @@ const createReminderRule = async (eventId, reminderType, timestamp, eventName, e
     }
 };
 
-// Helper function to calculate timestamps
-const calculateTimestamp = (eventDate, eventTime, daysOffset) => {
-    const eventTimestamp = new Date(`${eventDate}T${eventTime}:00Z`).getTime();
-    return eventTimestamp + daysOffset * 24 * 60 * 60 * 1000;
+// Helper function to convert event date/time to UTC timestamp
+const convertToUTCTimestamp = (eventDate, eventTime, daysBefore) => {
+    const localDateTime = new Date(`${eventDate}T${eventTime}:00`); // Local time
+    const utcDateTime = new Date(localDateTime.getTime() - (daysBefore * 24 * 60 * 60 * 1000)); // Subtract daysBefore
+
+    console.info(`Converted timestamp for ${daysBefore} days before event: ${utcDateTime.toISOString()}`);
+    
+    return utcDateTime.getTime();
 };
 
 
